@@ -1,36 +1,37 @@
 (function () {
-    // Журнал для отладки
     console.log("Плагин 'Кнопка перехода на КиноПоиск' запущен");
 
-    // Ожидание загрузки интерфейса
+    // Слушатель события открытия карточки фильма
     Lampa.Listener.follow('card', function (event) {
-        console.log("Открыта карточка фильма:", event);
+        console.log("Карточка фильма открыта:", event);
 
-        // Ищем элемент рейтинга от КиноПоиска
+        // Проверяем, есть ли информация о рейтингах
         var kpRating = document.querySelector('.info__rate span[data-type="kp"]');
-
         if (kpRating) {
-            console.log("Рейтинг КиноПоиска найден:", kpRating);
+            console.log("Рейтинг КиноПоиска найден:", kpRating.textContent);
 
-            // Делаем рейтинг визуально отличимым
+            // Устанавливаем стиль для визуального выделения
             kpRating.style.fontWeight = 'bold';
             kpRating.style.color = 'orange';
             kpRating.style.cursor = 'pointer';
 
             // Добавляем обработчик клика
             kpRating.addEventListener('click', function () {
-                var kpId = kpRating.dataset.id; // Проверяем, есть ли ID фильма от КиноПоиска
+                // Попробуем получить ID фильма или ссылку
+                var kpId = kpRating.dataset.id || kpRating.parentElement.dataset.id;
 
                 if (kpId) {
                     var kpLink = 'https://www.kinopoisk.ru/film/' + kpId;
                     console.log("Переход по ссылке:", kpLink);
                     window.open(kpLink, '_blank');
                 } else {
-                    console.log("ID фильма не найден");
+                    console.warn("ID фильма не найден, ссылка не создана");
                 }
             });
         } else {
-            console.log("Рейтинг КиноПоиска не найден в карточке фильма");
+            console.warn("Рейтинг КиноПоиска не найден в карточке фильма");
         }
     });
+
+    console.log("Слушатель события для карточки установлен");
 })();
