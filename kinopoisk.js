@@ -1,42 +1,36 @@
 (function () {
-    console.log("Плагин перехода на КиноПоиск загружен");
+    // Журнал для отладки
+    console.log("Плагин 'Кнопка перехода на КиноПоиск' запущен");
 
+    // Ожидание загрузки интерфейса
     Lampa.Listener.follow('card', function (event) {
-        if (event.type === 'start') {
-            setTimeout(() => {
-                console.log("Проверяем наличие рейтинга КиноПоиска...");
-                let kinopoiskRating = document.querySelector('.info__rate .rate--kp');
+        console.log("Открыта карточка фильма:", event);
 
-                if (kinopoiskRating) {
-                    console.log("Элемент рейтинга найден:", kinopoiskRating);
+        // Ищем элемент рейтинга от КиноПоиска
+        var kpRating = document.querySelector('.info__rate span[data-type="kp"]');
 
-                    // Пробуем извлечь ID фильма
-                    let movieId = Lampa.Activity.active().object.id;
-                    console.log("ID фильма:", movieId);
+        if (kpRating) {
+            console.log("Рейтинг КиноПоиска найден:", kpRating);
 
-                    if (movieId) {
-                        let kinopoiskUrl = `https://www.kinopoisk.ru/film/${movieId}/`;
-                        console.log("Формируем ссылку:", kinopoiskUrl);
+            // Делаем рейтинг визуально отличимым
+            kpRating.style.fontWeight = 'bold';
+            kpRating.style.color = 'orange';
+            kpRating.style.cursor = 'pointer';
 
-                        // Добавляем действие при клике
-                        kinopoiskRating.style.cursor = 'pointer';
-                        kinopoiskRating.style.fontWeight = 'bold';
-                        kinopoiskRating.style.color = 'orange';
-                        kinopoiskRating.title = 'Перейти на КиноПоиск';
+            // Добавляем обработчик клика
+            kpRating.addEventListener('click', function () {
+                var kpId = kpRating.dataset.id; // Проверяем, есть ли ID фильма от КиноПоиска
 
-                        kinopoiskRating.onclick = () => {
-                            console.log("Переходим по ссылке:", kinopoiskUrl);
-                            window.open(kinopoiskUrl, '_blank');
-                        };
-
-                        console.log("Стили и событие добавлены к рейтингу КиноПоиска");
-                    } else {
-                        console.warn("ID фильма не найден, ссылка не добавлена");
-                    }
+                if (kpId) {
+                    var kpLink = 'https://www.kinopoisk.ru/film/' + kpId;
+                    console.log("Переход по ссылке:", kpLink);
+                    window.open(kpLink, '_blank');
                 } else {
-                    console.warn("Элемент рейтинга КиноПоиска не найден");
+                    console.log("ID фильма не найден");
                 }
-            }, 500); // Ждём завершения загрузки карточки
+            });
+        } else {
+            console.log("Рейтинг КиноПоиска не найден в карточке фильма");
         }
     });
 })();
