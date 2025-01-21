@@ -1,23 +1,20 @@
 (function () {
     console.log("Плагин 'Кнопка перехода на КиноПоиск' запущен");
 
-    // Слушатель события открытия карточки фильма
+    alert("Плагин загружен!");
+
     Lampa.Listener.follow('card', function (event) {
         console.log("Карточка фильма открыта:", event);
 
-        // Проверяем, есть ли информация о рейтингах
         var kpRating = document.querySelector('.info__rate span[data-type="kp"]');
         if (kpRating) {
             console.log("Рейтинг КиноПоиска найден:", kpRating.textContent);
 
-            // Устанавливаем стиль для визуального выделения
             kpRating.style.fontWeight = 'bold';
             kpRating.style.color = 'orange';
             kpRating.style.cursor = 'pointer';
 
-            // Добавляем обработчик клика
             kpRating.addEventListener('click', function () {
-                // Попробуем получить ID фильма или ссылку
                 var kpId = kpRating.dataset.id || kpRating.parentElement.dataset.id;
 
                 if (kpId) {
