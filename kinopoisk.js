@@ -15,7 +15,7 @@
 			headers: {
 				'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616'
 			},
-			cache_time: 60 * 60 * 24 * 1000 //86400000 сек = 1 день Время кэша в секундах
+			cache_time: 60 * 60 * 24 * 1000 //86400000 сек = 1день Время кэша в секундах
 		};
 		getRating();
 
@@ -185,42 +185,85 @@
 				}); // Кешируем данные
 				return _showRating(_movieRating);
 			}
-}
-        function containsTitle(str, query) {
-			return str && query && str.toLowerCase().indexOf(query.toLowerCase()) > -1;
 		}
 
-		function equalTitle(str, query) {
-			return str && query && str.toLowerCase() === query.toLowerCase();
+		function cleanTitle(str){
+			return str.replace(/[\s.,:;’'`!?]+/g, ' ').trim();
 		}
 
-		function _showRating(rating) {
-			if (rating.kp && rating.imdb) {
-				$('#movie-rating')
-					.append('<div class="ratings"><span class="kp-rating">' + rating.kp.toFixed(1) + '</span>/<span class="imdb-rating">' + rating.imdb.toFixed(1) + '</span></div>');
+		function kpCleanTitle(str){
+			return cleanTitle(str).replace(/^[ \/\\]+/, '').replace(/[ \/\\]+$/, '').replace(/\+( *[+\/\\])+/g, '+').replace(/([+\/\\] *)+\+/g, '+').replace(/( *[\/\\]+ *)+/g, '+');
+		}
+
+		function normalizeTitle(str){
+			return cleanTitle(str.toLowerCase().replace(/[\-\u2010-\u2015\u2E3A\u2E3B\uFE58\uFE63\uFF0D]+/g, '-').replace(/ё/g, 'е'));
+		}
+
+		function equalTitle(t1, t2){
+			return typeof t1 === 'string' && typeof t2 === 'string' && normalizeTitle(t1) === normalizeTitle(t2);
+		}
+
+		function containsTitle(str, title){
+			return typeof str === 'string' && typeof title === 'string' && normalizeTitle(str).indexOf(normalizeTitle(title)) !== -1;
+		}
+
+		function showError(error) {
+			Lampa.Noty.show('Рейтинг KP: ' + error);
+		}
+
+		function _getCache(movie) {
+			var timestamp = new Date().getTime();
+			var cache = Lampa.Storage.cache('kp_rating', 500, {}); //500 это лимит ключей
+			if (cache[movie]) {
+				if ((timestamp - cache[movie].timestamp) > params.cache_time) {
+					// Если кеш истёк, чистим его
+					delete cache[movie];
+					Lampa.Storage.set('kp_rating', cache);
+					return false;
+				}
+			} else return false;
+			return cache;
+		}
+
+		function _setCache(movie, data) {
+			var timestamp = new Date().getTime();
+			var cache = Lampa.Storage.cache('kp_rating', 500, {}); //500 это лимит ключей
+			if (!cache[movie]) {
+				cache[movie] = data;
+				Lampa.Storage.set('kp_rating', cache);
 			} else {
-				$('#movie-rating')
-					.append('<div class="ratings"><span class="no-rating">No Ratings</span></div>');
+				if ((timestamp - cache[movie].timestamp) > params.cache_time) {
+					data.timestamp = timestamp;
+					cache[movie] = data;
+					Lampa.Storage.set('kp_rating', cache);
+				} else data = cache[movie];
+			}
+			return data;
+		}
+
+		function _showRating(data) {
+			if (data) {
+				var kp_rating = !isNaN(data.kp) && data.kp !== null ? parseFloat(data.kp).toFixed(1) : '0.0';
+				var imdb_rating = !isNaN(data.imdb) && data.imdb !== null ? parseFloat(data.imdb).toFixed(1) : '0.0';
+				var render = Lampa.Activity.active().activity.render();
+				$('.wait_rating', render).remove();
+				$('.rate--imdb', render).removeClass('hide').find('> div').eq(0).text(imdb_rating);
+				$('.rate--kp', render).removeClass('hide').find('> div').eq(0).text(kp_rating);
 			}
 		}
+	}
 
-		function _getCache(id) {
-			var cache = Lampa.Cache.get('ratings') || {};
-			return cache[id] || null;
-		}
-
-		function _setCache(id, rating) {
-			var cache = Lampa.Cache.get('ratings') || {};
-			cache[id] = rating;
-			Lampa.Cache.set('ratings', cache);
-			return rating;
-		}
-
-		function showError(message) {
-			Lampa.Noty.show(message, 'error');
-		}
-
-		function kpCleanTitle(title) {
-			return title.trim().replace(/\s+/g, ' ').toLowerCase();
-		}
-	})();
+	function startPlugin() {
+		window.rating_plugin = true;
+		Lampa.Listener.follow('full', function (e) {
+			if (e.type == 'complite') {
+				var render = e.object.activity.render();
+				if ($('.rate--kp', render).hasClass('hide') && !$('.wait_rating', render).length) {
+					$('.info__rate', render).after('<div style="width:2em;margin-top:1em;margin-right:1em" class="wait_rating"><div class="broadcast__scan"><div></div></div><div>');
+					rating_kp_imdb(e.data.movie);
+				}
+			}
+		});
+	}
+	if (!window.rating_plugin) startPlugin();
+})();
